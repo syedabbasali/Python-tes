@@ -1,4 +1,4 @@
-name: Build and Notify
+name: Notify on Build Failure
 
 on:
   push:
@@ -9,24 +9,7 @@ on:
       - main
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-
-    - name: Run build script
-      run: |
-        python build.py
-
   notify:
-    needs: build
     runs-on: ubuntu-latest
 
     steps:
@@ -51,7 +34,6 @@ jobs:
         to: 'recipient@example.com'
 
   comment:
-    needs: build
     runs-on: ubuntu-latest
 
     steps:
@@ -68,17 +50,12 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const fs = require('fs');
-          const buildFailed = fs.existsSync('.build-failed');
+          const context = github.context;
+          const octokit = github.getOctokit(process.env.GITHUB_TOKEN);
 
-          if (buildFailed) {
-            const context = github.context;
-            const octokit = github.getOctokit(process.env.GITHUB_TOKEN);
-
-            octokit.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: 'The build failed. Please check the build logs for details.',
-            });
-          }
+          octokit.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: 'The build failed. Please check the build logs for details.',
+          });
